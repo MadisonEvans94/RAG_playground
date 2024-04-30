@@ -14,6 +14,27 @@ import umap
 from sklearn.mixture import GaussianMixture
 
 
+class Config:
+    def __init__(self):
+        self.source_folder = 'core-notes'
+        self.destination_folder = 'text-files'
+        self.phrases_to_remove = [
+            "video links", "Video Links", "Second Brain", "brain dump", "Brain Dump", "upstream"
+        ]
+        self.chunk_size = 500
+        self.chunk_overlap = 75
+        self.model_temperature = 0
+        self.model_name = "gpt-3.5-turbo"
+        self.embedding_dim = 2
+        self.max_clusters = 10
+        self.random_state = 1234
+        self.cluster_threshold = 0.5
+        self.summary_template = """You are an assistant to create a summary of the text input provided. It should be human-readable. It should contain a minimum of 1 words and a maximum of 4 words
+        Text:
+        {text}
+        """
+
+
 class Cluster:
     def __init__(self, name: str, embedding: List[float], children: List['Node'], parent: Optional['Cluster'] | None) -> None:
         self.name = name
@@ -65,17 +86,16 @@ def create_nodes_from_documents(destination_folder: str, embedding_model) -> Lis
     return nodes
 
 
-def cluster_nodes(nodes: List[Node]) -> pd.DataFrame:
-    """Perform clustering on nodes and return a DataFrame with texts and their cluster labels."""
+def cluster_nodes(nodes: List[Node], config: Config) -> pd.DataFrame:
     embeddings = np.array([node.embedding for node in nodes])
-    reduced_embeddings = reduce_cluster_embeddings(embeddings, 2)
-    labels, _ = gmm_clustering(reduced_embeddings, threshold=0.5)
-    df = pd.DataFrame({
+    reduced_embeddings = reduce_cluster_embeddings(
+        embeddings, config.embedding_dim, config)
+    labels, _ = gmm_clustering(reduced_embeddings, config)
+    return pd.DataFrame({
         'Text': [node.text for node in nodes],
         'Embedding': list(reduced_embeddings),
         'Cluster': [label[0] if len(label) > 0 else -1 for label in labels]
     })
-    return df
 
 
 def visualize_clusters(df: pd.DataFrame) -> None:
@@ -109,16 +129,11 @@ def markdown_to_text(source_folder: str, destination_folder: str, phrases_to_rem
                 file.write(content)
 
 
-def reduce_cluster_embeddings(
-    embeddings: np.ndarray,
-    dim: int,
-    n_neighbors: Optional[int] = None,
-    metric: str = "cosine",
-) -> np.ndarray:
-    if n_neighbors is None:
-        n_neighbors = int((len(embeddings) - 1) ** 0.5)
+def reduce_cluster_embeddings(embeddings: np.ndarray, dim: int, config: Config) -> np.ndarray:
     return umap.UMAP(
-        n_neighbors=n_neighbors, n_components=dim, metric=metric
+        n_neighbors=int((len(embeddings) - 1) ** 0.5),
+        n_components=dim,
+        metric="cosine"
     ).fit_transform(embeddings)
 
 
@@ -129,13 +144,13 @@ def get_optimal_clusters(embeddings: np.ndarray, max_clusters: int = 10, random_
     return np.argmin(bics) + 1
 
 
-def gmm_clustering(embeddings: np.ndarray, threshold: float, random_state: int = 0):
-    n_clusters = get_optimal_clusters(embeddings)
+def gmm_clustering(embeddings: np.ndarray, config: Config):
+    n_clusters = get_optimal_clusters(
+        embeddings, config.max_clusters, config.random_state)
     gm = GaussianMixture(n_components=n_clusters,
-                         random_state=random_state).fit(embeddings)
+                         random_state=config.random_state).fit(embeddings)
     probs = gm.predict_proba(embeddings)
-    labels = [np.where(prob > threshold)[0] for prob in probs]
-    return labels, n_clusters
+    return [np.where(prob > config.cluster_threshold)[0] for prob in probs], n_clusters
 
 
 def format_cluster_texts(df):
@@ -153,11 +168,7 @@ def summarize_clusters(df: pd.DataFrame, model, prompt_template: str) -> dict:
     clustered_texts = format_cluster_texts(df)
     template = ChatPromptTemplate.from_template(prompt_template)
     chain = template | model | StrOutputParser()
-    summaries = {}
-    for cluster, text in clustered_texts.items():
-        summary = chain.invoke({"text": text})
-        summaries[cluster] = summary
-    return summaries
+    return {cluster: chain.invoke({"text": text}) for cluster, text in clustered_texts.items()}
 
 
 phrases_to_remove = [
@@ -175,24 +186,18 @@ text_splitter = RecursiveCharacterTextSplitter(
 
 # Main execution function
 def main():
-    source_folder = 'core-notes'
-    destination_folder = 'text-files'
-    phrases_to_remove = [
-        "video links", "Video Links", "Second Brain", "brain dump", "Brain Dump", "upstream"
-    ]
-    markdown_to_text(source_folder, destination_folder, phrases_to_remove)
+    config = Config()
+    markdown_to_text(config.source_folder,
+                     config.destination_folder, config.phrases_to_remove)
     embedding_model = OpenAIEmbeddings()
-    model = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
-    nodes = create_nodes_from_documents(destination_folder, embedding_model)
-    df = cluster_nodes(nodes)
-
-    summary_template = """You are an assistant to create a summary of the text input provided. It should be human-readable. It should contain a minimum of 1 words and a maximum of 4 words
-    Text:
-    {text}
-    """
-    summaries = summarize_clusters(df, model, summary_template)
-    print(summaries)
+    model = ChatOpenAI(temperature=config.model_temperature,
+                       model=config.model_name)
+    nodes = create_nodes_from_documents(
+        config.destination_folder, embedding_model)
+    df = cluster_nodes(nodes, config)
     visualize_clusters(df)
+    summaries = summarize_clusters(df, model, config.summary_template)
+    print(summaries)
 
 
 if __name__ == "__main__":
