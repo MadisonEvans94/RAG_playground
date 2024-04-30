@@ -15,6 +15,25 @@ from sklearn.mixture import GaussianMixture
 
 
 class Config:
+    """
+    Configuration class to hold settings and parameters for the application.
+
+    Attributes:
+        text_splitter (RecursiveCharacterTextSplitter): Text splitter utility for processing documents.
+        source_folder (str): Directory where source markdown files are stored.
+        destination_folder (str): Directory where processed text files are stored.
+        phrases_to_remove (List[str]): List of phrases to filter out from the text.
+        chunk_size (int): The size of each text chunk to process.
+        chunk_overlap (int): The overlap between consecutive text chunks.
+        model_temperature (float): Temperature setting for the AI model, affecting randomness.
+        model_name (str): Name of the AI model used for processing text.
+        embedding_dim (int): Dimensionality for embedding vectors.
+        max_clusters (int): Maximum number of clusters for the clustering algorithm.
+        random_state (int): Seed for the random number generator used in clustering.
+        cluster_threshold (float): Threshold for cluster assignment probabilities.
+        summary_template (str): Template used for generating summaries of text clusters.
+    """
+
     def __init__(self):
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=500, chunk_overlap=75, length_function=len, is_separator_regex=False)
@@ -53,7 +72,16 @@ class Node:
 
 
 def text_cleanup(content: str, phrases_to_remove: List[str]) -> str:
-    """Process text to remove specified phrases and markdown formatting."""
+    """
+    Cleans up the given text content by removing specified markdown elements and phrases.
+
+    Parameters:
+        content (str): The markdown content to clean.
+        phrases_to_remove (List[str]): Phrases that should be removed from the content.
+
+    Returns:
+        str: The cleaned text.
+    """
     lines = content.splitlines()
     filtered_content = []
     for line in lines:
@@ -72,7 +100,17 @@ def text_cleanup(content: str, phrases_to_remove: List[str]) -> str:
 
 
 def create_nodes_from_documents(destination_folder: str, embedding_model: OpenAIEmbeddings, config: Config) -> List[Node]:
-    """Load documents from a folder, process them into text chunks, and return a list of Node objects with embeddings."""
+    """
+    Processes documents from the specified folder and creates Node objects with embeddings.
+
+    Parameters:
+        destination_folder (str): The folder where text files are located.
+        embedding_model (OpenAIEmbeddings): The model used to generate embeddings for text chunks.
+        config (Config): Configuration instance containing settings like text_splitter.
+
+    Returns:
+        List[Node]: A list of Node objects with embeddings and text data.
+    """
     loader = DirectoryLoader(
         destination_folder, glob="**/*.txt", show_progress=True)
     docs = loader.load()
@@ -87,6 +125,16 @@ def create_nodes_from_documents(destination_folder: str, embedding_model: OpenAI
 
 
 def cluster_nodes(nodes: List[Node], config: Config) -> pd.DataFrame:
+    """
+    Clusters nodes based on their embeddings and returns a DataFrame with cluster labels and other details.
+
+    Parameters:
+        nodes (List[Node]): The list of nodes to cluster.
+        config (Config): Configuration instance containing clustering parameters.
+
+    Returns:
+        pd.DataFrame: DataFrame containing the text of each node, their embeddings, and assigned cluster labels.
+    """
     embeddings = np.array([node.embedding for node in nodes])
     reduced_embeddings = reduce_cluster_embeddings(
         embeddings, config.embedding_dim, config)
@@ -99,7 +147,15 @@ def cluster_nodes(nodes: List[Node], config: Config) -> pd.DataFrame:
 
 
 def visualize_clusters(df: pd.DataFrame) -> None:
-    """Visualize clusters of nodes."""
+    """
+    Visualizes the clustering of nodes using their embeddings.
+
+    Parameters:
+        df (pd.DataFrame): DataFrame containing embedding data and cluster labels for visualization.
+
+    Returns:
+        None: This function does not return any value; it shows a plot directly.
+    """
     embeddings = np.stack(df['Embedding'].to_list())
     labels = df['Cluster'].to_numpy()
     plt.figure(figsize=(10, 8))
@@ -117,7 +173,17 @@ def visualize_clusters(df: pd.DataFrame) -> None:
 
 
 def markdown_to_text(source_folder: str, destination_folder: str, phrases_to_remove: List[str]) -> None:
-    """Convert markdown files in a source folder to text files in a destination folder after cleaning them."""
+    """
+    Converts markdown files from a source directory to cleaned text files in a destination directory.
+
+    Parameters:
+        source_folder (str): Directory containing the markdown files to process.
+        destination_folder (str): Target directory where the cleaned text files will be saved.
+        phrases_to_remove (List[str]): List of phrases that should be removed from the text.
+
+    Returns:
+        None: This function does not return a value; it writes to files directly.
+    """
     if not os.path.exists(destination_folder):
         os.makedirs(destination_folder)
     for filename in os.listdir(source_folder):
@@ -130,6 +196,17 @@ def markdown_to_text(source_folder: str, destination_folder: str, phrases_to_rem
 
 
 def reduce_cluster_embeddings(embeddings: np.ndarray, dim: int, config: Config) -> np.ndarray:
+    """
+    Applies dimensionality reduction on the embeddings using UMAP.
+
+    Parameters:
+        embeddings (np.ndarray): Array of embedding vectors to be reduced.
+        dim (int): Target dimensionality for the embeddings.
+        config (Config): Configuration object containing algorithm parameters.
+
+    Returns:
+        np.ndarray: Array of reduced embeddings.
+    """
     return umap.UMAP(
         n_neighbors=int((len(embeddings) - 1) ** 0.5),
         n_components=dim,
@@ -138,6 +215,17 @@ def reduce_cluster_embeddings(embeddings: np.ndarray, dim: int, config: Config) 
 
 
 def get_optimal_clusters(embeddings: np.ndarray, max_clusters: int = 10, random_state: int = 1234):
+    """
+    Determines the optimal number of clusters for Gaussian Mixture Model clustering using the Bayesian Information Criterion (BIC).
+
+    Parameters:
+        embeddings (np.ndarray): Array of embeddings to cluster.
+        max_clusters (int): Maximum number of clusters to consider.
+        random_state (int): Seed for the random number generator.
+
+    Returns:
+        int: The optimal number of clusters.
+    """
     max_clusters = min(max_clusters, len(embeddings))
     bics = [GaussianMixture(n_components=n, random_state=random_state).fit(embeddings).bic(embeddings)
             for n in range(1, max_clusters)]
@@ -145,6 +233,16 @@ def get_optimal_clusters(embeddings: np.ndarray, max_clusters: int = 10, random_
 
 
 def gmm_clustering(embeddings: np.ndarray, config: Config) -> Tuple[List[List[int]], int]:
+    """
+    Applies Gaussian Mixture Modeling to cluster the given embeddings and returns cluster labels.
+
+    Parameters:
+        embeddings (np.ndarray): Array of embeddings to cluster.
+        config (Config): Configuration object containing clustering settings.
+
+    Returns:
+        Tuple[List[List[int]], int]: A tuple containing a list of cluster labels for each point and the number of clusters used.
+    """
     n_clusters = get_optimal_clusters(
         embeddings, config.max_clusters, config.random_state)
     gm = GaussianMixture(n_components=n_clusters,
@@ -154,17 +252,33 @@ def gmm_clustering(embeddings: np.ndarray, config: Config) -> Tuple[List[List[in
 
 
 def format_cluster_texts(df) -> Dict[int, str]:
+    """
+    Formats the texts of each cluster into a single string per cluster.
+
+    Parameters:
+        df (pd.DataFrame): DataFrame containing the text and cluster labels.
+
+    Returns:
+        Dict[int, str]: Dictionary with cluster IDs as keys and concatenated string of texts as values.
+    """
     clustered_texts = {}
     for cluster in df['Cluster'].unique():
         cluster_texts = df[df['Cluster'] == cluster]['Text'].tolist()
         clustered_texts[cluster] = " --- ".join(cluster_texts)
     return clustered_texts
 
-# Function to summarize clusters
-
 
 def summarize_clusters(df: pd.DataFrame, model, prompt_template: str) -> Dict[int, str]:
-    """Summarize the text within each cluster using a language model."""
+    """
+    Summarizes the texts within each cluster using a configured language model.
+    Parameters:
+        df (pd.DataFrame): DataFrame containing the cluster texts.
+        model (ChatOpenAI): The language model used for generating summaries.
+        prompt_template (str): Template string used to format the input to the model.
+
+    Returns:
+        Dict[int, str]: Dictionary with cluster IDs as keys and summaries as values.
+    """
     clustered_texts = format_cluster_texts(df)
     template = ChatPromptTemplate.from_template(prompt_template)
     chain = template | model | StrOutputParser()
