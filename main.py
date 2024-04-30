@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 import os
 import re
 import pandas as pd
@@ -16,6 +16,8 @@ from sklearn.mixture import GaussianMixture
 
 class Config:
     def __init__(self):
+        self.text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=500, chunk_overlap=75, length_function=len, is_separator_regex=False)
         self.source_folder = 'core-notes'
         self.destination_folder = 'text-files'
         self.phrases_to_remove = [
@@ -69,16 +71,14 @@ def text_cleanup(content: str, phrases_to_remove: List[str]) -> str:
     return ''.join(filtered_content)
 
 
-def create_nodes_from_documents(destination_folder: str, embedding_model) -> List[Node]:
+def create_nodes_from_documents(destination_folder: str, embedding_model: OpenAIEmbeddings, config: Config) -> List[Node]:
     """Load documents from a folder, process them into text chunks, and return a list of Node objects with embeddings."""
     loader = DirectoryLoader(
         destination_folder, glob="**/*.txt", show_progress=True)
     docs = loader.load()
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500, chunk_overlap=75, length_function=len, is_separator_regex=False)
     nodes = []
     for doc in docs:
-        chunks = text_splitter.split_documents([doc])
+        chunks = config.text_splitter.split_documents([doc])
         for chunk in chunks:
             embedding = embedding_model.embed_query(chunk.page_content)
             nodes.append(Node(embedding=embedding,
@@ -144,7 +144,7 @@ def get_optimal_clusters(embeddings: np.ndarray, max_clusters: int = 10, random_
     return np.argmin(bics) + 1
 
 
-def gmm_clustering(embeddings: np.ndarray, config: Config):
+def gmm_clustering(embeddings: np.ndarray, config: Config) -> Tuple[List[List[int]], int]:
     n_clusters = get_optimal_clusters(
         embeddings, config.max_clusters, config.random_state)
     gm = GaussianMixture(n_components=n_clusters,
@@ -153,7 +153,7 @@ def gmm_clustering(embeddings: np.ndarray, config: Config):
     return [np.where(prob > config.cluster_threshold)[0] for prob in probs], n_clusters
 
 
-def format_cluster_texts(df):
+def format_cluster_texts(df) -> Dict[int, str]:
     clustered_texts = {}
     for cluster in df['Cluster'].unique():
         cluster_texts = df[df['Cluster'] == cluster]['Text'].tolist()
@@ -163,7 +163,7 @@ def format_cluster_texts(df):
 # Function to summarize clusters
 
 
-def summarize_clusters(df: pd.DataFrame, model, prompt_template: str) -> dict:
+def summarize_clusters(df: pd.DataFrame, model, prompt_template: str) -> Dict[int, str]:
     """Summarize the text within each cluster using a language model."""
     clustered_texts = format_cluster_texts(df)
     template = ChatPromptTemplate.from_template(prompt_template)
@@ -193,7 +193,7 @@ def main():
     model = ChatOpenAI(temperature=config.model_temperature,
                        model=config.model_name)
     nodes = create_nodes_from_documents(
-        config.destination_folder, embedding_model)
+        config.destination_folder, embedding_model, config)
     df = cluster_nodes(nodes, config)
     visualize_clusters(df)
     summaries = summarize_clusters(df, model, config.summary_template)
