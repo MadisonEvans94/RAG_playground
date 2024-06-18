@@ -38,15 +38,11 @@ class Config:
 
 
 class Node:
-    _id_counter = 0
-
     def __init__(self, text: str, embedding: np.ndarray, depth: int):
         self.text: str = text
         self.embedding: np.ndarray = embedding
         self.depth: int = depth
         self.children: List[Node] = []
-        self.id: int = Node._id_counter
-        Node._id_counter += 1
 
 
 def create_recursive_tree(nodes: List[Node], config: Config, embedding_model: OpenAIEmbeddings, model: ChatOpenAI, depth: int = 0) -> List[Node]:
@@ -131,17 +127,13 @@ class CustomRAPTORAgent:
         relevant_nodes = self.retrieve_relevant_nodes(query, self.tree)
         context_texts = [node.text for node in relevant_nodes]
         context = "\n\n".join(context_texts)
-        node_ids = [node.id for node in relevant_nodes]
         prompt_template = """Answer the question, and utilize the context to help guide your answer:
         Context:
         {context}
 
         Question: {question}
-        
-        Your response must end by declaring the list of Node IDs used: {node_ids}
         """
-        prompt = prompt_template.format(
-            context=context, question=query, node_ids=node_ids)
+        prompt = prompt_template.format(context=context, question=query)
         human_message = HumanMessage(content=prompt)
         response_message: BaseMessage = self.model.invoke([human_message])
         response = response_message.content.strip()
