@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from utils import create_nodes_from_documents, summarize_clusters, visualize_clusters, cluster_nodes, markdown_to_text
@@ -10,8 +10,7 @@ import matplotlib.pyplot as plt
 import umap
 from langchain_core.output_parsers import StrOutputParser
 from langchain.prompts import ChatPromptTemplate
-# Import necessary schema
-from langchain.schema import HumanMessage, AIMessage, BaseMessage
+from langchain.schema import HumanMessage, BaseMessage
 
 
 class Config:
@@ -39,11 +38,15 @@ class Config:
 
 
 class Node:
+    _id_counter = 0
+
     def __init__(self, text: str, embedding: np.ndarray, depth: int):
         self.text: str = text
         self.embedding: np.ndarray = embedding
         self.depth: int = depth
         self.children: List[Node] = []
+        self.id: int = Node._id_counter
+        Node._id_counter += 1
 
 
 def create_recursive_tree(nodes: List[Node], config: Config, embedding_model: OpenAIEmbeddings, model: ChatOpenAI, depth: int = 0) -> List[Node]:
@@ -121,8 +124,28 @@ class CustomRAPTORAgent:
         prompt = self.config.summary_template.format(text=combined_text)
         human_message = HumanMessage(content=prompt)
         summary_response: BaseMessage = self.model.invoke([human_message])
-        summary = summary_response.content.strip()  # Correct handling of response
+        summary = summary_response.content.strip()
         return summary
+
+    def generate_contextual_response(self, query: str) -> str:
+        relevant_nodes = self.retrieve_relevant_nodes(query, self.tree)
+        context_texts = [node.text for node in relevant_nodes]
+        context = "\n\n".join(context_texts)
+        node_ids = [node.id for node in relevant_nodes]
+        prompt_template = """Answer the question, and utilize the context to help guide your answer:
+        Context:
+        {context}
+
+        Question: {question}
+        
+        Your response must end by declaring the list of Node IDs used: {node_ids}
+        """
+        prompt = prompt_template.format(
+            context=context, question=query, node_ids=node_ids)
+        human_message = HumanMessage(content=prompt)
+        response_message: BaseMessage = self.model.invoke([human_message])
+        response = response_message.content.strip()
+        return response
 
 
 config = Config()
@@ -137,7 +160,6 @@ tree = create_recursive_tree(nodes, config, embedding_model, model)
 visualize_clusters(pd.DataFrame({
     'Text': [node.text for node in tree],
     'Embedding': [node.embedding for node in tree],
-    # Assuming all nodes are part of one cluster for visualization
     'Cluster': [0] * len(tree)
 }))
 summaries = summarize_clusters(pd.DataFrame({
@@ -147,6 +169,6 @@ summaries = summarize_clusters(pd.DataFrame({
 }), model, config.summary_template)
 
 agent = CustomRAPTORAgent(tree, model, embedding_model, config)
-response = agent.query_tree(
+response = agent.generate_contextual_response(
     "what is it called when you minimize the loss function in a machine learning algorithm?")
 print(response)

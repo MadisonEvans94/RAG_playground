@@ -1,0 +1,8 @@
+{
+  "attachmentFolderPath": "attachments",
+  "showUnsupportedFiles": false,
+  "newFileLocation": "root",
+  "newFileFolderPath": "Core",
+  "alwaysUpdateLinks": true,
+  "promptDelete": false
+}

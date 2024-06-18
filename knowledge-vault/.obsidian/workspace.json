@@ -1,0 +1,260 @@
+{
+  "main": {
+    "id": "481a11120dff2ce0",
+    "type": "split",
+    "children": [
+      {
+        "id": "6e96cd9410a37366",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "985eb152dc341f97",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "nodes/Neo4j.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "0de56bc5efd4a8b2",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Graph Data Modeling.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "cf30b7d95327fd7b",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Constructing Knowledge Graphs From Unstructured Text Using LLMs.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "e222b47f5563baab",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "nodes/LSTM.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "7a3ce9488519e1e2",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "LangServe.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          }
+        ],
+        "currentTab": 3
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "8d552ca228284cd6",
+    "type": "split",
+    "children": [
+      {
+        "id": "520b815c9c8361db",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "fcbeebc7d2fe2215",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "7573ac28a8686fd2",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "253b34cfbf271c32",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {}
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "8d8e18b31ef43e5a",
+    "type": "split",
+    "children": [
+      {
+        "id": "6e5d95ddb726a273",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "519778f83b5c9aee",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "nodes/LSTM.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "700640e5c40dc201",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "nodes/LSTM.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "17116293df52b478",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true
+              }
+            }
+          },
+          {
+            "id": "5682c3398d6c0269",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "nodes/LSTM.md"
+              }
+            }
+          },
+          {
+            "id": "68d5bd2ecb1d57ca",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "markdown-importer:Open format converter": false,
+      "audio-recorder:Start/stop recording": false,
+      "zk-prefixer:Create new unique note": false
+    }
+  },
+  "active": "e222b47f5563baab",
+  "lastOpenFiles": [
+    "nodes/Neo4j.md",
+    "nodes/Sequelize.md",
+    "nodes/What is `__init__.py`?.md",
+    "nodes/testtttt.md",
+    "nodes/BGP Hijacking.md",
+    "nodes/EER Relational Mapping.md",
+    "Advanced RAG Strategies.md",
+    "attachments/Pasted image 20240501151041.png",
+    "attachments/Pasted image 20240501150613.png",
+    "Cross-lingual Coreference.md",
+    "attachments/advanced_RAG_example.png",
+    "LangServe.md",
+    "attachments/Advanced_RAG_graph_diagram.png",
+    "attachments/Advanced_RAG_filestructure.png",
+    "attachments/RAG_parent_document_retrieval_strategies.png",
+    "attachments/RAG_stepback_approach.png",
+    "Constructing Knowledge Graphs From Unstructured Text Using LLMs.md",
+    "Graph Data Modeling.md",
+    "attachments/neo4j_IFA_traversal.png",
+    "attachments/index_free_table_diagram.png",
+    "attachments/index_free_diagram.png",
+    "Templates/New Seed.md",
+    "nodes/LSTM.md",
+    "incubator/Untitled.md",
+    "nodes/Accuracy Plots vs Loss Plots.md",
+    "nodes/Apollo.md",
+    "nodes",
+    "nodes/asdf.md",
+    "sprouts/madison-evans-takehome.zip",
+    "attachments",
+    "Core/assets",
+    "Core/images",
+    "Core/untitled folder",
+    "nodes/When to use a Tuple and when to use an Object.md",
+    "nodes/What it means when we call an algorithm  \"greedy\".md",
+    "nodes/Web Sockets.md",
+    "nodes/Vanishing Gradient Problem.md",
+    "nodes/The Idea of State Management in LSTM cells.md",
+    "nodes/the difference between .get() and .use().md",
+    "nodes/Testing with Postman.md",
+    "nodes/Style Transfer.md",
+    "nodes/Stochastic Gradient Descent.md",
+    "sprouts",
+    "untitled folder"
+  ]
+}

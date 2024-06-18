@@ -1,4 +1,6 @@
 venv/
 text-files
 .env
-knowledge-vault/
+./knowledge-vault/.obsidian
+./knowledge-vault/attachments
+./knowledge-vault/Templates
