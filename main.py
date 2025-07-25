@@ -3,6 +3,7 @@ import json
 from typing import Dict, Any
 from strategies.raptor import RAPTORStrategy
 from strategies.base import BaseRAGStrategy
+from strategies.hyde import HyDEStrategy
 
 
 # Registry of available strategies
@@ -10,7 +11,7 @@ STRATEGIES = {
     'raptor': RAPTORStrategy,
     # Future strategies will be added here
     # 'graphrag': GraphRAGStrategy,
-    # 'hyde': HyDEStrategy,
+    'hyde': HyDEStrategy,
     # 'hybrid': HybridStrategy,
 }
 

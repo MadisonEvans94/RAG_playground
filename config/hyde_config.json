@@ -1,0 +1,18 @@
+{
+  "chunk_size": 500,
+  "chunk_overlap": 75,
+  "model_name": "gpt-3.5-turbo",
+  "model_temperature": 0.7,
+  "num_hypothetical_docs": 3,
+  "similarity_threshold": 0.5,
+  "destination_folder": "text-files",
+  "phrases_to_remove": [
+    "video links",
+    "Video Links",
+    "Second Brain",
+    "brain dump",
+    "Brain Dump",
+    "upstream"
+  ],
+  "include_hypothetical_docs": false
+}
