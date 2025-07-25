@@ -50,7 +50,6 @@ class GraphRAGStrategy(BaseRAGStrategy):
     
     def _setup(self):
         """Initialize GraphRAG-specific components"""
-        # Extract config values
         self.chunk_size = self.config.get('chunk_size', 500)
         self.chunk_overlap = self.config.get('chunk_overlap', 75)
         self.model_name = self.config.get('model_name', 'gpt-3.5-turbo')
@@ -60,14 +59,12 @@ class GraphRAGStrategy(BaseRAGStrategy):
         self.min_community_size = self.config.get('min_community_size', 2)
         self.similarity_threshold = self.config.get('similarity_threshold', 0.5)
         
-        # Initialize models
         self.embedding_model = OpenAIEmbeddings()
         self.llm = ChatOpenAI(
             temperature=self.model_temperature,
             model=self.model_name
         )
         
-        # Initialize text splitter
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
@@ -75,7 +72,6 @@ class GraphRAGStrategy(BaseRAGStrategy):
             is_separator_regex=False
         )
         
-        # Graph components
         self.graph = nx.DiGraph()
         self.entities: Dict[str, Entity] = {}
         self.relationships: List[Relationship] = []
@@ -83,7 +79,6 @@ class GraphRAGStrategy(BaseRAGStrategy):
         self.documents: List[Document] = []
         self.vectorstore: Optional[FAISS] = None
         
-        # Prompts
         self.entity_extraction_prompt = """Extract entities and relationships from the following text.
         
 Format your response as JSON with the following structure:
@@ -139,13 +134,11 @@ Answer:"""
         from utils import markdown_to_text
         from langchain_community.document_loaders import DirectoryLoader, TextLoader
         
-        # Convert markdown to text
         destination_folder = self.config.get('destination_folder', 'text-files')
         phrases_to_remove = self.config.get('phrases_to_remove', [])
         
         markdown_to_text(source_path, destination_folder, phrases_to_remove)
         
-        # Load documents
         loader = DirectoryLoader(
             destination_folder,
             glob="**/*.txt",
@@ -154,30 +147,24 @@ Answer:"""
         )
         documents = loader.load()
         
-        # Split documents into chunks
         self.documents = []
         for doc in documents:
             chunks = self.text_splitter.split_documents([doc])
             self.documents.extend(chunks)
         
-        # Extract entities and relationships from each chunk
         print("Extracting entities and relationships...")
         for i, doc in enumerate(self.documents):
             print(f"Processing document {i+1}/{len(self.documents)}")
             self._extract_entities_relationships(doc.page_content)
         
-        # Build the graph
         self._build_graph()
         
-        # Detect communities
         print("Detecting communities...")
         self._detect_communities()
         
-        # Generate community summaries
         print("Generating community summaries...")
         self._generate_community_summaries()
         
-        # Create vector store for community summaries
         self._create_vectorstore()
         
         print(f"Graph built with {len(self.entities)} entities and {len(self.relationships)} relationships")
@@ -191,10 +178,8 @@ Answer:"""
         try:
             response = self.llm.invoke([message])
             
-            # Parse JSON response
             result = json.loads(response.content)
             
-            # Process entities
             for entity_data in result.get('entities', []):
                 entity_name = entity_data['name'].lower().strip()
                 if entity_name not in self.entities:
@@ -208,12 +193,10 @@ Answer:"""
                     )
                     self.entities[entity_name] = entity
             
-            # Process relationships
             for rel_data in result.get('relationships', []):
                 source = rel_data['source'].lower().strip()
                 target = rel_data['target'].lower().strip()
                 
-                # Only add relationship if both entities exist
                 if source in self.entities and target in self.entities:
                     relationship = Relationship(
                         source=source,
@@ -228,7 +211,6 @@ Answer:"""
     
     def _build_graph(self) -> None:
         """Build NetworkX graph from entities and relationships"""
-        # Add nodes
         for entity_name, entity in self.entities.items():
             self.graph.add_node(
                 entity_name,
@@ -237,7 +219,6 @@ Answer:"""
                 embedding=entity.embedding
             )
         
-        # Add edges
         for rel in self.relationships:
             self.graph.add_edge(
                 rel.source,
@@ -252,37 +233,31 @@ Answer:"""
         if len(self.graph.nodes()) == 0:
             return
         
-        # Convert to undirected graph for community detection
         undirected_graph = self.graph.to_undirected()
         
-        # Detect communities
         partition = community_louvain.best_partition(undirected_graph)
         
-        # Group entities by community
         communities_dict = defaultdict(list)
         for entity, community_id in partition.items():
             communities_dict[community_id].append(entity)
         
-        # Create Community objects
         for comm_id, entities in communities_dict.items():
             if len(entities) >= self.min_community_size:
                 self.communities[comm_id] = Community(
                     id=comm_id,
-                    level=0,  # Single level for simplicity
+                    level=0,  
                     entities=entities,
-                    summary=""  # Will be generated next
+                    summary=""  
                 )
     
     def _generate_community_summaries(self) -> None:
         """Generate summaries for each community"""
         for comm_id, community in self.communities.items():
-            # Gather entity descriptions
             entity_descriptions = []
             for entity_name in community.entities:
                 entity = self.entities[entity_name]
                 entity_descriptions.append(f"- {entity.name} ({entity.type}): {entity.description}")
             
-            # Gather relationships within community
             community_relationships = []
             for rel in self.relationships:
                 if rel.source in community.entities and rel.target in community.entities:
@@ -290,7 +265,6 @@ Answer:"""
                         f"- {rel.source} --[{rel.relationship_type}]--> {rel.target}: {rel.description}"
                     )
             
-            # Generate summary
             prompt = self.community_summary_prompt.format(
                 entities="\n".join(entity_descriptions[:10]),  # Limit for context
                 relationships="\n".join(community_relationships[:10])
@@ -320,7 +294,6 @@ Answer:"""
             )
             community_docs.append(doc)
         
-        # Create FAISS vector store
         if community_docs:
             self.vectorstore = FAISS.from_documents(
                 documents=community_docs,
@@ -329,7 +302,6 @@ Answer:"""
     
     def retrieve(self, query: str, top_k: int = 5) -> List[Any]:
         """Retrieve relevant information based on query type"""
-        # Determine if query is entity-specific (local) or broad (global)
         query_type = self._classify_query(query)
         
         if query_type == "local":
@@ -339,34 +311,28 @@ Answer:"""
     
     def _classify_query(self, query: str) -> str:
         """Classify query as local (entity-specific) or global (broad)"""
-        # Simple heuristic: check if query mentions specific entities
         query_lower = query.lower()
         
-        # Check if any known entities are mentioned
         for entity_name in self.entities.keys():
             if entity_name in query_lower:
                 return "local"
         
-        # Keywords that suggest global queries
         global_keywords = ['overall', 'main themes', 'summarize', 'overview', 'general', 'all', 'entire']
         if any(keyword in query_lower for keyword in global_keywords):
             return "global"
         
-        # Default to global for broad questions
         return "global"
     
     def _local_retrieve(self, query: str, top_k: int) -> List[Dict[str, Any]]:
         """Local retrieval focusing on specific entities"""
         query_lower = query.lower()
         
-        # Find mentioned entities
         mentioned_entities = []
         for entity_name in self.entities.keys():
             if entity_name in query_lower:
                 mentioned_entities.append(entity_name)
         
         if not mentioned_entities:
-            # Fall back to finding most similar entities
             query_embedding = self.embedding_model.embed_query(query)
             entity_similarities = []
             
@@ -378,18 +344,14 @@ Answer:"""
             entity_similarities.sort(key=lambda x: x[1], reverse=True)
             mentioned_entities = [name for name, _ in entity_similarities[:3]]
         
-        # Gather context around mentioned entities
         context_items = []
         for entity_name in mentioned_entities:
 
-            # Get entity info
             entity = self.entities[entity_name]
             
-            # Get neighbors and relationships
             neighbors = []
             if entity_name in self.graph:
 
-                # Outgoing edges
                 for target in self.graph.successors(entity_name):
                     edge_data = self.graph[entity_name][target]
                     neighbors.append({
@@ -398,7 +360,6 @@ Answer:"""
                         'description': edge_data.get('description', '')
                     })
                 
-                # Incoming edges
                 for source in self.graph.predecessors(entity_name):
                     edge_data = self.graph[source][entity_name]
                     neighbors.append({
@@ -409,7 +370,7 @@ Answer:"""
             
             context_items.append({
                 'entity': entity,
-                'neighbors': neighbors[:top_k]  # Limit neighbors
+                'neighbors': neighbors[:top_k]  
             })
         
         return context_items
@@ -449,11 +410,9 @@ Answer:"""
                 metadata={'strategy': 'GraphRAG', 'query_type': 'local'}
             )
         
-        # Format context for the first entity (primary focus)
         primary_context = context[0]
         entity = primary_context['entity']
         
-        # Format neighbor information
         neighbor_info = []
         for neighbor in primary_context['neighbors']:
             neighbor_entity = self.entities.get(neighbor['entity'])
