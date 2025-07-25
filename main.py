@@ -4,15 +4,13 @@ from typing import Dict, Any
 from strategies.raptor import RAPTORStrategy
 from strategies.base import BaseRAGStrategy
 from strategies.hyde import HyDEStrategy
-
+from strategies.graphrag import GraphRAGStrategy
 
 # Registry of available strategies
 STRATEGIES = {
     'raptor': RAPTORStrategy,
-    # Future strategies will be added here
-    # 'graphrag': GraphRAGStrategy,
+    'graphrag': GraphRAGStrategy,
     'hyde': HyDEStrategy,
-    # 'hybrid': HybridStrategy,
 }
 
 
